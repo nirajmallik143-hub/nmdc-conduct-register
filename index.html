@@ -7,6 +7,9 @@
 <meta name="theme-color" content="#0a192f">
 <title>AJS x NMDC Security</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- Firebase SDK Scripts -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
 :root{--n:#0a192f;--s:#1e3a5f;--a:#d97706;--r:#dc2626;--g:#16a34a;--b:#2563eb;--bg:#f0f3f7;}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
@@ -65,7 +68,54 @@ input:focus,select:focus,textarea:focus{border-color:var(--b);background:#fff;}
 </style>
 <script>
 /* ===== STATE ===== */
-window.cur = "gate1";
+window.FB = { u: 'https://nmdc-ajs-security-default-rtdb.firebaseio.com' };
+```[span_3](start_span)[span_3](end_span)
+
+Replace that line with this setup code:
+
+```javascript
+// Firebase Initialization
+const firebaseConfig = {
+  databaseURL: "https://nmdc-ajs-security-default-rtdb.firebaseio.com"
+};
+
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.database();
+
+// Live Real-Time Sync across all patrol phones
+function startRealtimeSync() {
+  // Sync Complaints
+  db.ref("complaints").on("value", (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      window.localDB.complaints = Object.values(data).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      if (typeof renderComplaints === "function") renderComplaints();
+    }
+  });
+
+  // Sync Vehicles / Gate Passes
+  db.ref("vehicles").on("value", (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      window.localDB.vehicles = Object.values(data).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      if (typeof renderGateLogs === "function") renderGateLogs();
+    }
+  });
+
+  // Sync Conduct Violations
+  db.ref("conduct").on("value", (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      window.localDB.conduct = Object.values(data).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      if (typeof renderConductLogs === "function") renderConductLogs();
+    }
+  });
+}
+
+// Start syncing when app loads
+startRealtimeSync();
 window.activeGuard = null;
 window.localDB = {vehicles:{}, complaints:[], conduct:[]};
 window.FB = {u:"https://nmdc-ajs-security-default-rtdb.firebaseio.com"};
